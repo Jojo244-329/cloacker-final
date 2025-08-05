@@ -7,46 +7,23 @@ const useragent = require('useragent');
 const { trackClick } = require('../services/trackingService');
 const gatekeeper = require('../middlewares/gatekeeper');
 
-
 // POST /gerar-slug
 router.post('/', async (req, res) => {
-  let {
-    destino,
-    cliente,
-    geo,
-    utm_source,
-    utm_medium,
-    utm_campaign,
-    utm_term,
-    utm_content
-  } = req.body;
+  const destino = "https://alfaconsulbrasil.com/";
 
-  // Se destino não foi informado, monta usando cliente/geo
+
   if (!destino) {
-    if (!cliente || !geo) {
-      return res.status(400).json({ erro: 'Você deve fornecer destino direto OU cliente e geo.' });
-    }
-    destino = `https://alfaconsulbrasil.com/`;
+    return res.status(400).json({ erro: 'Destino obrigatório' });
   }
 
-  // Constroi a URL final com todos os parâmetros UTM
-  const utmParams = new URLSearchParams({
-    utm_source: utm_source || '',
-    utm_medium: utm_medium || '',
-    utm_campaign: utm_campaign || '',
-    utm_term: utm_term || '',
-    utm_content: utm_content || ''
-  }).toString();
-
-  const finalUrl = `${destino}?${utmParams}`;
   const slug = crypto.randomBytes(6).toString('hex');
 
-  await redisClient.set(`slug:${slug}`, JSON.stringify({ destino: finalUrl }));
+  await redisClient.set(`slug:${slug}`, JSON.stringify({ destino }));
 
   res.json({
     slug,
     link: `https://dark-cloacker.up.railway.app/${slug}`,
-    destino: finalUrl
+    destino
   });
 });
 
@@ -63,15 +40,22 @@ router.get('/:slug', async (req, res) => {
   const device = parsedUA.device.toString();
 
   const data = JSON.parse(slugData);
-  const { destino, utm } = data;
+  const { destino } = data;
 
-  await trackClick(req.params.slug, { ip, ua, ref, time, utm: utm || '', device });
+  const utmParams = new URLSearchParams(req.query).toString();
+  const finalUrl = utmParams ? `${destino}?${utmParams}` : destino;
 
-  await redisClient.del(`slug:${req.params.slug}`);
+  await trackClick(req.params.slug, {
+    ip, ua, ref, time, utm: utmParams, device
+  });
+
+  // 🔥 OPCIONAL: se não quiser deletar o slug depois, comenta a linha abaixo
+  // await redisClient.del(`slug:${req.params.slug}`);
+
   res.send(`
     <script>
       sessionStorage.setItem('approved', 'ok');
-      window.location.href = '${destino}';
+      window.location.href = '${finalUrl}';
     </script>
   `);
 });
