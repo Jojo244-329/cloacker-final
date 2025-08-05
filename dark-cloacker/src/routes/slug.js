@@ -10,20 +10,44 @@ const gatekeeper = require('../middlewares/gatekeeper');
 
 // POST /gerar-slug
 router.post('/', async (req, res) => {
-  let { cliente, geo, utm, destino } = req.body;
+  let {
+    destino,
+    cliente,
+    geo,
+    utm_source,
+    utm_medium,
+    utm_campaign,
+    utm_term,
+    utm_content
+  } = req.body;
 
-  // Se destino direto não foi passado, monta a URL
+  // Se destino não foi informado, monta usando cliente/geo
   if (!destino) {
-    if (!cliente || !geo || !utm) {
-      return res.status(400).json({ erro: 'Você deve fornecer ou um destino direto, ou cliente, geo e utm.' });
+    if (!cliente || !geo) {
+      return res.status(400).json({ erro: 'Você deve fornecer destino direto OU cliente e geo.' });
     }
-    destino = `https://alfaconsulbrasil.com/${cliente}/${geo}/?utm_source=${encodeURIComponent(utm)}`;
+    destino = `https://alfaconsulbrasil.com/`;
   }
 
-  const slug = crypto.randomBytes(6).toString('hex');
-  await redisClient.set(`slug:${slug}`, JSON.stringify({ destino, utm }));
+  // Constroi a URL final com todos os parâmetros UTM
+  const utmParams = new URLSearchParams({
+    utm_source: utm_source || '',
+    utm_medium: utm_medium || '',
+    utm_campaign: utm_campaign || '',
+    utm_term: utm_term || '',
+    utm_content: utm_content || ''
+  }).toString();
 
-  res.json({ slug, link: `https://dark-cloacker.up.railway.app/${slug}`, destino });
+  const finalUrl = `${destino}?${utmParams}`;
+  const slug = crypto.randomBytes(6).toString('hex');
+
+  await redisClient.set(`slug:${slug}`, JSON.stringify({ destino: finalUrl }));
+
+  res.json({
+    slug,
+    link: `https://dark-cloacker.up.railway.app/${slug}`,
+    destino: finalUrl
+  });
 });
 
 // GET /:slug
