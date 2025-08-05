@@ -26,3 +26,12 @@ redisClient.connect().then(() => {
     console.log(`🔥 Cloaker rodando na porta ${port}`);
   });
 });
+
+app.get('/:slug', gatekeeper, async (req, res) => {
+  const { slug } = req.params;
+  const data = await redisClient.get(`slug:${slug}`);
+  if (!data) return res.status(404).send('Slug não encontrado ou expirado');
+  const { destino } = JSON.parse(data);
+  res.redirect(destino);
+});
+
