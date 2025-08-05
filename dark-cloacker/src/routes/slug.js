@@ -9,7 +9,7 @@ const gatekeeper = require('../middlewares/gatekeeper');
 
 
 // POST /gerar-slug
-router.post('/gerar-slug', async (req, res) => {
+router.post('/', async (req, res) => {
   let { cliente, geo, utm, destino } = req.body;
 
   // Se destino direto não foi passado, monta a URL
