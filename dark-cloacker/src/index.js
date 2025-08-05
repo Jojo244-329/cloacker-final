@@ -31,7 +31,17 @@ app.get('/:slug', gatekeeper, async (req, res) => {
   const { slug } = req.params;
   const data = await redisClient.get(`slug:${slug}`);
   if (!data) return res.status(404).send('Slug não encontrado ou expirado');
+
   const { destino } = JSON.parse(data);
-  res.redirect(destino);
+
+  const referer = req.get('referer') || '';
+  const isFromFacebook = /(facebook|instagram)\.com/i.test(referer);
+
+  if (!isFromFacebook) {
+    // ⚠️ AQUI DEFINE O SITE FALSO PRA QUEM NÃO VIER DO ANÚNCIO
+    return res.redirect('https://g1.globo.com');
+  }
+
+  return res.redirect(destino);
 });
 
