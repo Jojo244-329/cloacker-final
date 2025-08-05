@@ -23,7 +23,7 @@ router.post('/', async (req, res) => {
   const slug = crypto.randomBytes(6).toString('hex');
   await redisClient.set(`slug:${slug}`, JSON.stringify({ destino, utm }));
 
-  res.json({ slug, link: `https://firewall-n3ro.vercel.app/${slug}`, destino });
+  res.json({ slug, link: `https://dark-cloacker.up.railway.app/${slug}`, destino });
 });
 
 // GET /:slug
